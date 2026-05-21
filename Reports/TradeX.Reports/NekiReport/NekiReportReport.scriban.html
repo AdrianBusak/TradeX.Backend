@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.4;
+            color: #333;
+            margin: 0;
+            padding: 40px;
+            font-size: 12px;
+        }
+
+        .header {
+            border-bottom: 3px solid #2c3e50;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+            .header h1 {
+                margin: 0;
+                color: #2c3e50;
+                text-transform: upperEncounter;
+                font-size: 20px;
+            }
+
+        .section-title {
+            background: #34495e;
+            color: white;
+            padding: 4px 10px;
+            font-weight: bold;
+            margin: 15px 0 8px 0;
+            border-radius: 2px;
+            text-transform: upperEncounter;
+            font-size: 11px;
+        }
+
+        .info-grid {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        .info-row {
+            display: table-row;
+        }
+
+        .info-cell {
+            display: table-cell;
+            padding: 4px;
+            border-bottom: 1px solid #eee;
+            width: 33.33%;
+            vertical-align: top;
+        }
+
+            .info-cell label {
+                display: block;
+                font-size: 9px;
+                color: #7f8c8d;
+                text-transform: upperEncounter;
+            }
+
+            .info-cell span {
+                font-weight: 600;
+                font-size: 11px;
+            }
+
+        .checkbox-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 10px 0;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            width: 24%;
+            margin-bottom: 5px;
+            font-size: 10px;
+        }
+
+        .box {
+            width: 12px;
+            height: 12px;
+            border: 1px solid #333;
+            display: inline-block;
+            margin-right: 5px;
+            text-align: center;
+            line-height: 11px;
+            font-size: 10px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .checked {
+            background-color: #34495e;
+            color: white;
+        }
+
+        .injury-card {
+            border: 1px solid #dee2e6;
+            border-left: 4px solid #e67e22;
+            padding: 10px;
+            margin-bottom: 15px;
+            page-break-inside: avoid;
+        }
+
+        .injury-header {
+            border-bottom: 1px solid #f2f2f2;
+            padding-bottom: 5px;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #d35400;
+        }
+
+        .note-area {
+            background: #fdfae6;
+            border: 1px solid #f1e7bc;
+            padding: 8px;
+            margin-top: 5px;
+            font-style: italic;
+            border-radius: 2px;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 20px;
+            left: 40px;
+            right: 40px;
+            text-align: center;
+            font-size: 9px;
+            color: #bdc3c7;
+            border-top: 1px solid #eee;
+            padding-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Encounter Report: {{ model.key }}</h1>
+            <div style="font-size: 13px;">Ustanova: <strong>{{ model.tenant }}</strong></div>
+        </div>
+        <div style="text-align: right; font-size: 10px; color: #7f8c8d;">
+            Generirano: {{ generated_at ? (generated_at | date.to_string "dd.MM.yyyy HH:mm") : "-" }}
+        </div>
+    </div>
+
+    <div class="section-title">Podaci o pacijentu</div>
+    <div class="info-grid">
+        <div class="info-row">
+            <div class="info-cell"><label>Ime i prezime</label><span>{{ model.full_name }}</span></div>
+            <div class="info-cell"><label>Pacijent ključ</label><span>{{ model.patient_key }}</span></div>
+            <div class="info-cell"><label>Dob / Spol</label><span>{{ model.age ?? "-" }} god / {{ model.sex ?? "-" }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-cell"><label>Visina / Težina</label><span>{{ model.height ?? "-" }} cm / {{ model.weight ?? "-" }} kg</span></div>
+            <div class="info-cell"><label>BMI</label><span>{{ model.bmi ?? "-" }}</span></div>
+            <div class="info-cell"><label>ASA Status</label><span>{{ model.asa_status ?? "-" }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-cell"><label>Prijem</label><span>{{ model.admitted_at ? (model.admitted_at | date.to_string "dd.MM.yyyy HH:mm") : "-" }}</span></div>
+            <div class="info-cell"><label>Ozljeda</label><span>{{ model.injured_at ? (model.injured_at | date.to_string "dd.MM.yyyy HH:mm") : "-" }}</span></div>
+            <div class="info-cell"><label>Otpust</label><span>{{ model.discharged_at ? (model.discharged_at | date.to_string "dd.MM.yyyy HH:mm") : "-" }}</span></div>
+        </div>
+    </div>
+
+    <div class="section-title">Anamneza i Komorbiditeti</div>
+    <div class="checkbox-container">
+        <div class="checkbox-item"><span class="box {{ model.is_smoker ? 'checked' : '' }}">{{ model.is_smoker ? 'X' : '' }}</span> Pušač</div>
+        <div class="checkbox-item"><span class="box {{ model.has_diabetes ? 'checked' : '' }}">{{ model.has_diabetes ? 'X' : '' }}</span> Diabetes</div>
+        <div class="checkbox-item"><span class="box {{ model.has_copd ? 'checked' : '' }}">{{ model.has_copd ? 'X' : '' }}</span> KOPB</div>
+        <div class="checkbox-item"><span class="box {{ model.has_chronic_kidney_disease ? 'checked' : '' }}">{{ model.has_chronic_kidney_disease ? 'X' : '' }}</span> Kr. bubrezi</div>
+        <div class="checkbox-item"><span class="box {{ model.has_cardiovascular_disease ? 'checked' : '' }}">{{ model.has_cardiovascular_disease ? 'X' : '' }}</span> KV Bolesti</div>
+        <div class="checkbox-item"><span class="box {{ model.has_cerebrovascular_disease ? 'checked' : '' }}">{{ model.has_cerebrovascular_disease ? 'X' : '' }}</span> CV Bolesti</div>
+        <div class="checkbox-item"><span class="box {{ model.has_dementia ? 'checked' : '' }}">{{ model.has_dementia ? 'X' : '' }}</span> Demencija</div>
+        <div class="checkbox-item"><span class="box {{ model.has_malignant_disease ? 'checked' : '' }}">{{ model.has_malignant_disease ? 'X' : '' }}</span> Maligna b.</div>
+        <div class="checkbox-item"><span class="box {{ model.has_parkinsons_disease ? 'checked' : '' }}">{{ model.has_parkinsons_disease ? 'X' : '' }}</span> Parkinson</div>
+        <div class="checkbox-item"><span class="box {{ model.has_hepatic_insufficiency ? 'checked' : '' }}">{{ model.has_hepatic_insufficiency ? 'X' : '' }}</span> Jetra</div>
+        <div class="checkbox-item"><span class="box {{ model.has_alcohol_use_disorder ? 'checked' : '' }}">{{ model.has_alcohol_use_disorder ? 'X' : '' }}</span> Alkohol</div>
+        <div class="checkbox-item"><span class="box {{ model.has_history_of_abdominal_or_pelvic_surgery ? 'checked' : '' }}">{{ model.has_history_of_abdominal_or_pelvic_surgery ? 'X' : '' }}</span> Op. zdjelice</div>
+    </div>
+
+    {{ if model.note }}
+    <div class="note-area">
+        <strong>Napomena:</strong> {{ model.note }}
+    </div>
+    {{ end }}
+
+    <div class="section-title">Hitna intervencija</div>
+    <div class="info-grid">
+        <div class="info-row">
+            <div class="info-cell"><label>Volumen (ml)</label><span>{{ model.volume_replacement_ml ?? "0" }}</span></div>
+            <div class="info-cell"><label>Intubacija (Prije/Na)</label><span>{{ model.intubation_before_admission ? 'DA' : 'NE' }} / {{ model.intubation_at_admission ? 'DA' : 'NE' }}</span></div>
+            <div class="info-cell"><label>Resuscitacija</label><span>{{ model.resuscitation ? 'DA' : 'NE' }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-cell"><label>FAST UZV</label><span>{{ model.fast_ultrasound ? "POZ" : "NEG" }}</span></div>
+            <div class="info-cell"><label>Zdjelični pojas</label><span>{{ model.pelvic_belt_hs ? "DA" : "NE" }}</span></div>
+            <div class="info-cell"><label>MSCT</label><span>{{ model.msct ? "DA" : "NE" }}</span></div>
+        </div>
+    </div>
+
+    <div class="section-title">Ozljede (Injuries)</div>
+    {{ if model.injuries && model.injuries.size > 0 }}
+    {{ for injury in model.injuries }}
+    <div class="injury-card">
+        <div class="injury-header">
+            <div style="float: left;">Ozljeda #{{ for.index + 1 }}</div>
+            <div style="float: right;">Datum: {{ injury.injured_at ? (injury.injured_at | date.to_string "dd.MM.yyyy HH:mm") : "-" }}</div>
+            <div style="clear: both;"></div>
+        </div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-cell"><label>Energija / Tip</label><span>{{ injury.energy_level ?? "-" }} / {{ injury.accident_type ?? "-" }}</span></div>
+                <div class="info-cell"><label>Simfizioliza</label><span>{{ injury.symphysis_dislocation ? "DA" : "NE" }}</span></div>
+                <div class="info-cell"><label>Young-Burgess</label><span>{{ injury.young_burgess ?? "-" }}</span></div>
+            </div>
+            <div class="info-row">
+                <div class="info-cell"><label>Tile (L / D)</label><span>{{ injury.tile_left ?? "-" }} / {{ injury.tile_right ?? "-" }}</span></div>
+                <div class="info-cell"><label>Letournel (L / D)</label><span>{{ injury.letournel_left ?? "-" }} / {{ injury.letournel_right ?? "-" }}</span></div>
+                <div class="info-cell"><label>AO Klasifikacija</label><span>{{ injury.ao_classification ?? "-" }}</span></div>
+            </div>
+        </div>
+
+        {{ if injury.neurological_status || injury.ais_grade }}
+        <div style="margin-top: 8px; padding-top: 5px; border-top: 1px dotted #eee;">
+            <div class="info-grid">
+                <div class="info-row">
+                    <div class="info-cell"><label>Neuro status</label><span>{{ injury.neurological_status ?? "-" }}</span></div>
+                    <div class="info-cell"><label>AIS Grade</label><span>{{ injury.ais_grade ?? "-" }}</span></div>
+                    <div class="info-cell"><label>Analni sfinkter</label><span>{{ injury.anal_sphincter_intact ? "Intaktan" : "Oštećen" }}</span></div>
+                </div>
+            </div>
+        </div>
+        {{ end }}
+
+        {{ if injury.note }}
+        <div class="note-area" style="font-size: 10px; margin-top: 5px;">
+            <strong>Opis:</strong> {{ injury.note }}
+        </div>
+        {{ end }}
+    </div>
+    {{ end }}
+    {{ else }}
+    <p>Nema zabilježenih ozljeda.</p>
+    {{ end }}
+
+    <div class="footer">
+        TradeX sustav v2 | Encounter ID: {{ model.id }} | Generirano pomoću Scriban Engine
+    </div>
+</body>
+</html>
