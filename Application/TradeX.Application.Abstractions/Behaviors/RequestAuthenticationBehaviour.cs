@@ -57,6 +57,18 @@ public sealed class RequestAuthenticationBehaviour<TRequest, TResponse>
         {
             return Unauthorized("Token signature not valid. Please check provided Bearer token.");
         }
+        catch (SecurityTokenInvalidIssuerException ex)
+        {
+            return Unauthorized("Token has an invalid issuer. Please check provided Bearer token.", ex);
+        }
+        catch (SecurityTokenInvalidAudienceException ex)
+        {
+            return Unauthorized("Token has an invalid audience. Please check provided Bearer token.", ex);
+        }
+        catch (SecurityTokenException ex)
+        {
+            return Unauthorized($"Token validation failed. [Exception: {ex.Message}]", ex);
+        }
         catch (Exception ex)
         {
             return Unauthorized(
@@ -69,39 +81,133 @@ public sealed class RequestAuthenticationBehaviour<TRequest, TResponse>
 
     private async Task<AuthResolutionResult> ResolveUserAsync(CancellationToken ct)
     {
-        var (externalUserId, isActive) = await _userContext.GetUserIdentifierAsync().ConfigureAwait(false);
+        var authenticatedUser = await _userContext.GetAuthenticatedUserAsync().ConfigureAwait(false);
+        var externalUserId = authenticatedUser.ExternalUserId;
 
-        if (externalUserId is null)
+        if (string.IsNullOrWhiteSpace(externalUserId))
             return AuthResolutionResult.Fail(
                 MissingToken($"Bearer token not provided or invalid format. [RequestName: {typeof(TRequest).Name}]"));
 
-        if (!isActive)
+        externalUserId = externalUserId.Trim();
+
+        if (!authenticatedUser.IsActive)
             return AuthResolutionResult.Fail(
                 Forbidden($"User not active. [ExternalId: {externalUserId}] [RequestName: {typeof(TRequest).Name}]"));
 
-        var userId = await EnsureUserExistsAsync(externalUserId, ct).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(authenticatedUser.Email))
+            return AuthResolutionResult.Fail(
+                Unauthorized($"User email claim not provided. [ExternalId: {externalUserId}] [RequestName: {typeof(TRequest).Name}]"));
+
+        authenticatedUser = authenticatedUser with
+        {
+            ExternalUserId = externalUserId,
+            Email = NormalizeRequired(authenticatedUser.Email),
+            FirstName = NormalizeOptional(authenticatedUser.FirstName),
+            LastName = NormalizeOptional(authenticatedUser.LastName)
+        };
+
+        var userId = await EnsureUserExistsAsync(authenticatedUser, ct).ConfigureAwait(false);
 
         return new AuthResolutionResult(userId, externalUserId);
     }
 
-    private async Task<Guid> EnsureUserExistsAsync(string externalUserId, CancellationToken cancellationToken)
+    private async Task<Guid> EnsureUserExistsAsync(
+        AuthenticatedUserContext authenticatedUser,
+        CancellationToken cancellationToken)
     {
-        var existingUserId = await _repository.DbContext.User
-            .Where(u => u.ExternalId == externalUserId)
-            .Select(u => (Guid?)u.Id)
-            .FirstOrDefaultAsync(cancellationToken)
+        var existingUser = await FindUserByExternalIdAsync(
+                authenticatedUser.ExternalUserId!,
+                cancellationToken)
             .ConfigureAwait(false);
 
-        if (existingUserId.HasValue)
-            return existingUserId.Value;
+        if (existingUser is not null)
+        {
+            await UpdateUserProfileIfChangedAsync(existingUser, authenticatedUser, cancellationToken)
+                .ConfigureAwait(false);
+
+            return existingUser.Id;
+        }
 
         var user = new User
         {
-            ExternalId = externalUserId
+            ExternalId = authenticatedUser.ExternalUserId!,
+            Email = authenticatedUser.Email,
+            FirstName = authenticatedUser.FirstName,
+            LastName = authenticatedUser.LastName,
+            IsActive = true
         };
 
-        return await _repository.AddAsync(user, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await _repository.AddAsync(user, cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateException)
+        {
+            _repository.DbContext.ChangeTracker.Clear();
+
+            existingUser = await FindUserByExternalIdAsync(
+                    authenticatedUser.ExternalUserId!,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (existingUser is null)
+                throw;
+
+            await UpdateUserProfileIfChangedAsync(existingUser, authenticatedUser, cancellationToken)
+                .ConfigureAwait(false);
+
+            return existingUser.Id;
+        }
     }
+
+    private Task<User?> FindUserByExternalIdAsync(
+        string externalUserId,
+        CancellationToken cancellationToken)
+        => _repository.DbContext.User
+            .Where(u => u.ExternalId == externalUserId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    private async Task UpdateUserProfileIfChangedAsync(
+        User user,
+        AuthenticatedUserContext authenticatedUser,
+        CancellationToken cancellationToken)
+    {
+        if (!ApplyUserProfile(user, authenticatedUser))
+            return;
+
+        await _repository.UpdateAsync(user, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static bool ApplyUserProfile(User user, AuthenticatedUserContext authenticatedUser)
+    {
+        var changed = false;
+
+        if (user.Email != authenticatedUser.Email)
+        {
+            user.Email = authenticatedUser.Email;
+            changed = true;
+        }
+
+        if (user.FirstName != authenticatedUser.FirstName)
+        {
+            user.FirstName = authenticatedUser.FirstName;
+            changed = true;
+        }
+
+        if (user.LastName != authenticatedUser.LastName)
+        {
+            user.LastName = authenticatedUser.LastName;
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private static string NormalizeRequired(string value)
+        => value.Trim();
+
+    private static string? NormalizeOptional(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static void PopulateRequestContext(TRequest request, AuthResolutionResult auth)
     {
@@ -113,7 +219,7 @@ public sealed class RequestAuthenticationBehaviour<TRequest, TResponse>
         => CreateResponse(OperationResult.Forbidden, message);
 
     private TResponse Unauthorized(string message, Exception? ex = null)
-        => CreateResponse(OperationResult.Unauthorized, message, ex);
+        => CreateResponse(OperationResult.Unauthorized, message, ex: ex);
 
     private TResponse MissingToken(string message)
         => CreateResponse(OperationResult.Unauthorized, message);

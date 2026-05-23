@@ -14,6 +14,15 @@ public class UserTypeConfiguration : EntityTypeConfigurationBase<User>
         builder.Property(x => x.ExternalId)
             .HasMaxLength(450);
 
+        builder.Property(x => x.Email)
+            .HasMaxLength(320);
+
+        builder.Property(x => x.FirstName)
+            .HasMaxLength(200);
+
+        builder.Property(x => x.LastName)
+            .HasMaxLength(200);
+
         builder.HasIndex(x => x.ExternalId)
             .IsUnique();
     }

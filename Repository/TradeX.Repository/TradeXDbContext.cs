@@ -8,8 +8,6 @@ namespace TradeX.Repository;
 public partial class TradeXDbContext(DbContextOptions<TradeXDbContext> options) : DbContext(options)
 {
     public virtual DbSet<User> User { get; set; }
-    public virtual DbSet<BlobDocument> BlobDocument { get; set; }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

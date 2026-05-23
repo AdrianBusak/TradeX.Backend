@@ -1,6 +1,8 @@
 namespace TradeX.Application.Abstractions.Interfaces;
 
+using TradeX.Application.Abstractions.Models;
+
 public interface IUserContextAccessor
 {
-    Task<Tuple<string?, bool>> GetUserIdentifierAsync();
+    Task<AuthenticatedUserContext> GetAuthenticatedUserAsync();
 }

@@ -27,6 +27,9 @@ internal class TokenValidatorService : ITokenValidatorService
             ValidateLifetime = true,
             ValidateAudience = true,
             ValidateIssuer = true,
+            ValidateIssuerSigningKey = true,
+            RequireSignedTokens = true,
+            RequireExpirationTime = true,
             ValidIssuer = $"{_tokenConfiguration.IssuerScheme}://{_tokenConfiguration.Issuer}/",
             ValidAudience = _tokenConfiguration.Audience,
             IssuerSigningKeys = signingKeys
@@ -37,25 +40,9 @@ internal class TokenValidatorService : ITokenValidatorService
             
             return new Tuple<IPrincipal?, SecurityToken?>(result, validatedToken);
         }
-        catch (SecurityTokenExpiredException ex)
+        catch (SecurityTokenException)
         {
-            throw new Exception("Token has expired.", ex);
-        }
-        catch (SecurityTokenInvalidIssuerException ex)
-        {
-            throw new Exception("Token has an invalid issuer.", ex);
-        }
-        catch (SecurityTokenInvalidAudienceException ex)
-        {
-            throw new Exception("Token has an invalid audience.", ex);
-        }
-        catch (SecurityTokenValidationException ex)
-        {
-            throw new Exception("Token validation failed: " + ex.Message, ex);
-        }
-        catch (SecurityTokenDecryptionFailedException ex)
-        {
-            throw new Exception("Token decryption failed: " + ex.Message, ex);
+            throw;
         }
         catch (Exception ex)
         {
