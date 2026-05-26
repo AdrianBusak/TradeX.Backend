@@ -48,14 +48,6 @@ public sealed class HardDeleteTradingAccountCommandHandler(ITradeXRepository rep
                 nameof(TradingAccount));
         }
 
-        if (entity.IsActive)
-        {
-            return new StandardResponse<HardDeleteEntityResponseModel>(
-                OperationResult.BadRequest,
-                "Entity must be soft deleted before hard delete.",
-                null!);
-        }
-
         await repository.DeleteHardAsync<TradingAccount>(request.Id, cancellationToken).ConfigureAwait(false);
 
         return new StandardResponse<HardDeleteEntityResponseModel>(
