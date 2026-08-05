@@ -11,6 +11,9 @@ public partial class TradeXDbContext(DbContextOptions<TradeXDbContext> options) 
     public virtual DbSet<TradingAccount> TradingAccount { get; set; }
     public virtual DbSet<Strategy> Strategy { get; set; }
     public virtual DbSet<StrategyRule> StrategyRule { get; set; }
+    public virtual DbSet<TradingInstrument> TradingInstrument { get; set; }
+    public virtual DbSet<Trade> Trade { get; set; }
+    public virtual DbSet<TradeAccountAssignment> TradeAccountAssignment { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
