@@ -55,6 +55,14 @@ public sealed class HardDeleteStrategyCommandHandler(ITradeXRepository repositor
                 null!);
         }
 
+        if (await HasTradesAsync(request.Id, cancellationToken).ConfigureAwait(false))
+        {
+            return new StandardResponse<HardDeleteEntityResponseModel>(
+                OperationResult.BadRequest,
+                "Entity has related records.",
+                null!);
+        }
+
         await repository.DeleteHardAsync<Strategy>(request.Id, cancellationToken).ConfigureAwait(false);
 
         return new StandardResponse<HardDeleteEntityResponseModel>(
@@ -70,6 +78,25 @@ public sealed class HardDeleteStrategyCommandHandler(ITradeXRepository repositor
             select new RelatedEntityResponseModel
             {
                 Id = rule.Id
+            };
+
+        var result = await repository.QueryAsync(
+                query,
+                pageSize: 1,
+                cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+
+        return result.Records is { Count: > 0 };
+    }
+
+    private async Task<bool> HasTradesAsync(Guid strategyId, CancellationToken cancellationToken)
+    {
+        var query =
+            from trade in repository.DbContext.Trade
+            where trade.StrategyId == strategyId
+            select new RelatedEntityResponseModel
+            {
+                Id = trade.Id
             };
 
         var result = await repository.QueryAsync(

@@ -119,6 +119,16 @@ public class StrategiesController(
         }, Logger).ConfigureAwait(false);
     }
 
+    [HttpPatch("{strategyId:guid}/restore")]
+    [MapToApiVersion("1.0")]
+    public async Task<ContentResult> Restore(Guid strategyId, CancellationToken cancellationToken)
+    {
+        return await HttpRequestProcessor.ProcessHttpRequestAsync(async () =>
+        {
+            return (IStandardResponse)await Mediator.Send(new RestoreStrategyCommand(strategyId), cancellationToken).ConfigureAwait(false);
+        }, Logger).ConfigureAwait(false);
+    }
+
     [HttpGet("{strategyId:guid}/rules")]
     [MapToApiVersion("1.0")]
     public async Task<ContentResult> GetRules(
@@ -199,6 +209,16 @@ public class StrategiesController(
             return (IStandardResponse)await Mediator.Send(
                 new HardDeleteStrategyRuleCommand(strategyId, ruleId),
                 cancellationToken).ConfigureAwait(false);
+        }, Logger).ConfigureAwait(false);
+    }
+
+    [HttpPatch("{strategyId:guid}/rules/{ruleId:guid}/restore")]
+    [MapToApiVersion("1.0")]
+    public async Task<ContentResult> RestoreRule(Guid strategyId, Guid ruleId, CancellationToken cancellationToken)
+    {
+        return await HttpRequestProcessor.ProcessHttpRequestAsync(async () =>
+        {
+            return (IStandardResponse)await Mediator.Send(new RestoreStrategyRuleCommand(strategyId, ruleId), cancellationToken).ConfigureAwait(false);
         }, Logger).ConfigureAwait(false);
     }
 }

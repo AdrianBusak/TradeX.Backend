@@ -48,10 +48,44 @@ public sealed class HardDeleteTradingAccountCommandHandler(ITradeXRepository rep
                 nameof(TradingAccount));
         }
 
+        if (await HasTradeAssignmentsAsync(request.Id, cancellationToken).ConfigureAwait(false))
+        {
+            return new StandardResponse<HardDeleteEntityResponseModel>(
+                OperationResult.BadRequest,
+                "Entity has related records.",
+                null!);
+        }
+
         await repository.DeleteHardAsync<TradingAccount>(request.Id, cancellationToken).ConfigureAwait(false);
 
         return new StandardResponse<HardDeleteEntityResponseModel>(
             OperationResult.Deleted,
             new HardDeleteEntityResponseModel());
+    }
+
+    private async Task<bool> HasTradeAssignmentsAsync(
+        Guid tradingAccountId,
+        CancellationToken cancellationToken)
+    {
+        var query =
+            from assignment in repository.DbContext.TradeAccountAssignment
+            where assignment.TradingAccountId == tradingAccountId
+            select new RelatedEntityResponseModel
+            {
+                Id = assignment.Id
+            };
+
+        var result = await repository.QueryAsync(
+                query,
+                pageSize: 1,
+                cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+
+        return result.Records is { Count: > 0 };
+    }
+
+    private sealed class RelatedEntityResponseModel
+    {
+        public Guid Id { get; set; }
     }
 }
