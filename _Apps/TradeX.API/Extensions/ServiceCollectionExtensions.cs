@@ -7,6 +7,7 @@ using TradeX.Application.Abstractions.Interfaces;
 using TradeX.Application.Clients.Extensions;
 using TradeX.Infrastructure.BlobStorageClient.Extensions;
 using TradeX.Infrastrucure.JwtAuthorization.Extensions;
+using TradeX.Infrastructure.LotCalculator.Extensions;
 using TradeX.Repository;
 
 namespace TradeX.API.Extensions;
@@ -21,6 +22,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserContextAccessor, UserContextAccessor>();
         services.AddScoped<IHttpRequestProcessingService, HttpRequestProcessingService>();
         services.AddBlobStorage(configuration);
+        services.AddLotCalculatorInfrastructure(configuration);
 
         services.AddSingleton(configuration.GetRequiredSection("ApplicationConfiguration").Get<ApplicationConfiguration>()!);
 

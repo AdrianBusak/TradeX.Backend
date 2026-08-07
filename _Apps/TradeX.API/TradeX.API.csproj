@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\Application\TradeX.Application\TradeX.Application.Clients.csproj" />
     <ProjectReference Include="..\..\Common\API.Abstractions\API.Abstractions.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TradeX.Infrastructure.BlobStorageClient\TradeX.Infrastructure.BlobStorageClient.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\TradeX.Infrastructure.LotCalculator\TradeX.Infrastructure.LotCalculator.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TradeX.Infrastrucure.JwtAuthorization\TradeX.Infrastrucure.JwtAuthorization.csproj" />
   </ItemGroup>
 
