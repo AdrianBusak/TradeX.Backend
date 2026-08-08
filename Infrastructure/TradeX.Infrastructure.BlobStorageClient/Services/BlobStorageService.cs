@@ -2,8 +2,8 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
+using TradeX.Application.Abstractions.Interfaces;
 using TradeX.Infrastructure.BlobStorageClient.Configuration;
-using TradeX.Infrastructure.BlobStorageClient.Interfaces;
 
 namespace TradeX.Infrastructure.BlobStorageClient.Services;
 
@@ -17,27 +17,19 @@ public class BlobStorageService(BlobServiceClient blobServiceClient, BlobStorage
         try
         {
             var containerClient = _blobServiceClient.GetBlobContainerClient(_config.ContainerName);
-
-            // Osiguraj container (u praksi se ovo često radi samo jednom pri deployu/startup-u)
             await containerClient.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
-
             var blobClient = containerClient.GetBlobClient(blobName);
-
-            var options = new BlobUploadOptions
+            await blobClient.UploadAsync(fileStream, new BlobUploadOptions
             {
                 HttpHeaders = new BlobHttpHeaders { ContentType = contentType },
-                // Opcionalno: dodajemo metapodatke ako zatrebaju za brzu pretragu bez baze
                 Metadata = new Dictionary<string, string> { { "UploadedBy", "TradeXAPI" } }
-            };
-
-            await blobClient.UploadAsync(fileStream, options, cancellationToken);
+            }, cancellationToken);
 
             return blobName;
         }
         catch (RequestFailedException ex)
         {
-            // Ovdje bi išao tvoj Logger
-            throw new Exception($"Azure Blob Upload failed: {ex.Message}", ex);
+            throw new InvalidOperationException("Azure Blob upload failed.", ex);
         }
     }
 
@@ -46,50 +38,34 @@ public class BlobStorageService(BlobServiceClient blobServiceClient, BlobStorage
         try
         {
             var containerClient = _blobServiceClient.GetBlobContainerClient(_config.ContainerName);
-            var blobClient = containerClient.GetBlobClient(blobPath);
-
-            // Briše blob i sve njegove snapshot-ove
-            await blobClient.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: cancellationToken);
+            await containerClient.GetBlobClient(blobPath)
+                .DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: cancellationToken);
         }
         catch (RequestFailedException ex)
         {
-            throw new Exception($"Azure Blob Delete failed: {ex.Message}", ex);
+            throw new InvalidOperationException("Azure Blob delete failed.", ex);
         }
     }
 
     public string GetSasUrl(string blobPath, int expiryMinutes = 60)
     {
-        if (string.IsNullOrWhiteSpace(blobPath)) return string.Empty;
+        ArgumentException.ThrowIfNullOrWhiteSpace(blobPath);
+        var containerClient = _blobServiceClient.GetBlobContainerClient(_config.ContainerName);
+        var blobClient = containerClient.GetBlobClient(blobPath);
 
-        try
+        if (!blobClient.CanGenerateSasUri)
         {
-            var containerClient = _blobServiceClient.GetBlobContainerClient(_config.ContainerName);
-            var blobClient = containerClient.GetBlobClient(blobPath);
-
-            // Provjera ima li klijent prava za generiranje SAS-a (Shared Key auth)
-            if (!blobClient.CanGenerateSasUri)
-            {
-                throw new InvalidOperationException("Napomena: ConnectionString mora sadržavati AccountKey za generiranje SAS URL-ova.");
-            }
-
-            var sasBuilder = new BlobSasBuilder
-            {
-                BlobContainerName = _config.ContainerName,
-                BlobName = blobClient.Name,
-                Resource = "b", // b = blob
-                ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(expiryMinutes)
-            };
-
-            // Postavljamo samo READ permisiju za sigurnost
-            sasBuilder.SetPermissions(BlobSasPermissions.Read);
-
-            return blobClient.GenerateSasUri(sasBuilder).ToString();
+            throw new InvalidOperationException("Blob Storage connection string must include AccountKey to generate SAS URLs.");
         }
-        catch (Exception)
+
+        var sasBuilder = new BlobSasBuilder
         {
-            // U slučaju greške vraćamo prazno kako UI ne bi pukao, 
-            // ali bi bilo dobro logirati incident
-            return string.Empty;
-        }
+            BlobContainerName = _config.ContainerName,
+            BlobName = blobClient.Name,
+            Resource = "b",
+            ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(expiryMinutes)
+        };
+        sasBuilder.SetPermissions(BlobSasPermissions.Read);
+        return blobClient.GenerateSasUri(sasBuilder).ToString();
     }
 }

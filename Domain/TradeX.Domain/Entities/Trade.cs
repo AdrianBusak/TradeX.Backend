@@ -39,4 +39,6 @@ public partial class Trade : BaseEntity
 
     public ICollection<TradeAccountAssignment> AccountAssignments { get; set; } =
         new List<TradeAccountAssignment>();
+
+    public ICollection<TradeImage> Images { get; set; } = new List<TradeImage>();
 }
