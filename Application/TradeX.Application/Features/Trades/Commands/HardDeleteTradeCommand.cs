@@ -27,7 +27,9 @@ public sealed class HardDeleteTradeCommand(Guid id)
     }
 }
 
-public sealed class HardDeleteTradeCommandHandler(ITradeXRepository repository)
+public sealed class HardDeleteTradeCommandHandler(
+    ITradeXRepository repository,
+    IBlobStorageService blobStorage)
     : IRequestHandler<HardDeleteTradeCommand, StandardResponse<HardDeleteEntityResponseModel>>
 {
     public async Task<StandardResponse<HardDeleteEntityResponseModel>> Handle(
@@ -57,6 +59,24 @@ public sealed class HardDeleteTradeCommandHandler(ITradeXRepository repository)
         {
             await repository.DeleteHardRangeAsync<TradeAccountAssignment>(
                     assignments.Select(x => x.Id).ToList(),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var images = await repository.GetListAsync<TradeImage>(
+                cancellationToken,
+                image => image.TradeId == trade.Id && image.UserId == userId)
+            .ConfigureAwait(false);
+
+        foreach (var image in images)
+        {
+            await blobStorage.DeleteAsync(image.BlobPath, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (images.Count > 0)
+        {
+            await repository.DeleteHardRangeAsync<TradeImage>(
+                    images.Select(x => x.Id).ToList(),
                     cancellationToken)
                 .ConfigureAwait(false);
         }

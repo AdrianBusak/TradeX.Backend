@@ -4,6 +4,8 @@ using TradeX.Application.Abstractions.Enums;
 using TradeX.Application.Abstractions.Extensions;
 using TradeX.Application.Abstractions.Interfaces;
 using TradeX.Application.Abstractions.Models;
+using TradeX.Application.Clients.Features.Trades;
+using TradeX.Domain.Entities;
 using TradeX.Domain.Enums;
 
 namespace TradeX.Application.Clients.Features.Trades.Queries;
@@ -21,7 +23,7 @@ public sealed class GetTradeByIdQuery(Guid id)
     }
 }
 
-public sealed class GetTradeByIdQueryHandler(ITradeXRepository repository)
+public sealed class GetTradeByIdQueryHandler(ITradeXRepository repository, IBlobStorageService blobStorage)
     : IRequestHandler<GetTradeByIdQuery, StandardResponse<GetTradeByIdResponseModel>>
 {
     public async Task<StandardResponse<GetTradeByIdResponseModel>> Handle(
@@ -79,6 +81,23 @@ public sealed class GetTradeByIdQueryHandler(ITradeXRepository repository)
         model.TradingAccounts = accounts.Records ?? [];
         model.TradingAccountIds = model.TradingAccounts.Select(x => x.Id).ToList();
 
+        var images = await repository.GetListAsync<TradeImage, DateTimeOffset>(
+            x => x.CreatedAt,
+            null,
+            -1,
+            cancellationToken,
+            x => x.TradeId == model.Id && x.UserId == userId && x.IsActive);
+
+        model.Images = images.Select(image => new TradeImageResponseModel
+        {
+            Id = image.Id,
+            OriginalFileName = image.OriginalFileName,
+            ContentType = image.ContentType,
+            SizeBytes = image.SizeBytes,
+            UploadedAt = image.CreatedAt,
+            Url = blobStorage.GetSasUrl(image.BlobPath)
+        }).ToList();
+
         return new StandardResponse<GetTradeByIdResponseModel>(OperationResult.Ok, model);
     }
 }
@@ -93,6 +112,7 @@ public sealed class GetTradeByIdResponseModel
     public MarketType MarketType { get; set; }
     public List<Guid> TradingAccountIds { get; set; } = [];
     public List<TradeAccountResponseModel> TradingAccounts { get; set; } = [];
+    public List<TradeImageResponseModel> Images { get; set; } = [];
     public TradeDirection Direction { get; set; }
     public TradingSession? Session { get; set; }
     public TradeStatus Status { get; set; }
