@@ -18,4 +18,6 @@ public partial class StrategyRule : BaseEntity
     public StrategyRuleCategory Category { get; set; } = StrategyRuleCategory.Entry;
 
     public StrategyRuleImportance Importance { get; set; } = StrategyRuleImportance.Medium;
+
+    public ICollection<TradeRuleCheck> TradeRuleChecks { get; set; } = new List<TradeRuleCheck>();
 }

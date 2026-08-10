@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using TradeX.Application.Abstractions.Enums;
 using TradeX.Application.Abstractions.Extensions;
 using TradeX.Application.Abstractions.Factories;
@@ -57,6 +58,26 @@ public sealed class HardDeleteStrategyRuleCommandHandler(ITradeXRepository repos
             return StandardResponseFactory.CreateEntityNotFoundStandardResponse<HardDeleteEntityResponseModel>(
                 request.RuleId,
                 nameof(StrategyRule));
+        }
+
+        if (entity.IsActive)
+        {
+            return new StandardResponse<HardDeleteEntityResponseModel>(
+                OperationResult.BadRequest,
+                "Strategy rule must be soft deleted before hard delete.",
+                null!);
+        }
+
+        var hasHistoricalChecks = await repository.DbContext.TradeRuleCheck
+            .AnyAsync(check => check.StrategyRuleId == entity.Id, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (hasHistoricalChecks)
+        {
+            return new StandardResponse<HardDeleteEntityResponseModel>(
+                OperationResult.BadRequest,
+                "Strategy rule cannot be hard deleted because it has historical trade rule checks.",
+                null!);
         }
 
         await repository.DeleteHardAsync<StrategyRule>(request.RuleId, cancellationToken).ConfigureAwait(false);

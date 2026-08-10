@@ -81,6 +81,19 @@ public sealed class HardDeleteTradeCommandHandler(
                 .ConfigureAwait(false);
         }
 
+        var ruleChecks = await repository.GetListAsync<TradeRuleCheck>(
+                cancellationToken,
+                check => check.TradeId == trade.Id && check.UserId == userId)
+            .ConfigureAwait(false);
+
+        if (ruleChecks.Count > 0)
+        {
+            await repository.DeleteHardRangeAsync<TradeRuleCheck>(
+                    ruleChecks.Select(x => x.Id).ToList(),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         await repository.DeleteHardAsync<Trade>(trade.Id, cancellationToken)
             .ConfigureAwait(false);
 

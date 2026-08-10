@@ -102,6 +102,31 @@ public class TradesController(
         }, Logger).ConfigureAwait(false);
     }
 
+    [HttpGet("{tradeId:guid}/rule-checks")]
+    [MapToApiVersion("1.0")]
+    public async Task<ContentResult> GetRuleChecks(Guid tradeId, CancellationToken cancellationToken)
+    {
+        return await HttpRequestProcessor.ProcessHttpRequestAsync(async () =>
+        {
+            return (IStandardResponse)await Mediator.Send(
+                new GetTradeRuleChecksQuery(tradeId), cancellationToken).ConfigureAwait(false);
+        }, Logger).ConfigureAwait(false);
+    }
+
+    [HttpPut("{tradeId:guid}/rule-checks")]
+    [MapToApiVersion("1.0")]
+    public async Task<ContentResult> UpdateRuleChecks(
+        Guid tradeId,
+        [FromBody] UpdateTradeRuleChecksRequest model,
+        CancellationToken cancellationToken)
+    {
+        return await HttpRequestProcessor.ProcessHttpRequestAsync(async () =>
+        {
+            return (IStandardResponse)await Mediator.Send(
+                new UpdateTradeRuleChecksCommand(tradeId, model), cancellationToken).ConfigureAwait(false);
+        }, Logger).ConfigureAwait(false);
+    }
+
     [HttpDelete("{tradeId:guid}/images/{imageId:guid}")]
     [MapToApiVersion("1.0")]
     public async Task<ContentResult> DeleteImage(Guid tradeId, Guid imageId, CancellationToken cancellationToken)
