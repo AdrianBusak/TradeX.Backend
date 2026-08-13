@@ -62,8 +62,8 @@ public sealed class UpdateMistakeCommandHandler(ITradeXRepository repository)
                 nameof(Mistake));
         }
 
-        var name = request.Model.Name.Trim();
-        if (await MistakeNameValidator.NameExistsAsync(repository, userId, name, entity.Id, cancellationToken)
+        var name = NormalizeRequired(request.Model.Name);
+        if (await NameExistsAsync(userId, entity.Id, name, cancellationToken)
                 .ConfigureAwait(false))
         {
             return new StandardResponse<UpdateEntityResponseModel>(
@@ -73,7 +73,7 @@ public sealed class UpdateMistakeCommandHandler(ITradeXRepository repository)
         }
 
         entity.Name = name;
-        entity.Description = MistakeText.Normalize(request.Model.Description);
+        entity.Description = NormalizeOptional(request.Model.Description);
         entity.ModifiedByUserId = userId;
 
         await repository.UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
@@ -82,4 +82,26 @@ public sealed class UpdateMistakeCommandHandler(ITradeXRepository repository)
             OperationResult.Updated,
             new UpdateEntityResponseModel());
     }
+
+    private async Task<bool> NameExistsAsync(
+        Guid userId,
+        Guid currentMistakeId,
+        string name,
+        CancellationToken cancellationToken)
+    {
+        var normalizedName = name.ToUpperInvariant();
+
+        return await repository.GetIdAsync<Mistake>(
+                mistake => mistake.UserId == userId &&
+                           mistake.Id != currentMistakeId &&
+                           mistake.Name.ToUpper() == normalizedName,
+                cancellationToken)
+            .ConfigureAwait(false) is not null;
+    }
+
+    private static string NormalizeRequired(string value)
+        => value.Trim();
+
+    private static string? NormalizeOptional(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

@@ -48,9 +48,9 @@ public sealed class CreateMistakeCommandHandler(ITradeXRepository repository)
         CancellationToken cancellationToken)
     {
         var userId = request.UserId();
-        var name = request.Model.Name.Trim();
+        var name = NormalizeRequired(request.Model.Name);
 
-        if (await MistakeNameValidator.NameExistsAsync(repository, userId, name, null, cancellationToken)
+        if (await NameExistsAsync(userId, name, cancellationToken)
                 .ConfigureAwait(false))
         {
             return new StandardResponse<CreateEntityResponseModel>(
@@ -63,7 +63,7 @@ public sealed class CreateMistakeCommandHandler(ITradeXRepository repository)
         {
             UserId = userId,
             Name = name,
-            Description = MistakeText.Normalize(request.Model.Description),
+            Description = NormalizeOptional(request.Model.Description),
             IsActive = true,
             CreatedByUserId = userId,
             ModifiedByUserId = userId
@@ -73,30 +73,24 @@ public sealed class CreateMistakeCommandHandler(ITradeXRepository repository)
             OperationResult.Created,
             new CreateEntityResponseModel { Id = id });
     }
-}
 
-internal static class MistakeText
-{
-    public static string? Normalize(string? value)
-        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-}
-
-internal static class MistakeNameValidator
-{
-    public static async Task<bool> NameExistsAsync(
-        ITradeXRepository repository,
+    private async Task<bool> NameExistsAsync(
         Guid userId,
         string name,
-        Guid? excludedId,
         CancellationToken cancellationToken)
     {
         var normalizedName = name.ToUpperInvariant();
 
         return await repository.GetIdAsync<Mistake>(
                 mistake => mistake.UserId == userId &&
-                           (!excludedId.HasValue || mistake.Id != excludedId.Value) &&
                            mistake.Name.ToUpper() == normalizedName,
                 cancellationToken)
             .ConfigureAwait(false) is not null;
     }
+
+    private static string NormalizeRequired(string value)
+        => value.Trim();
+
+    private static string? NormalizeOptional(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
