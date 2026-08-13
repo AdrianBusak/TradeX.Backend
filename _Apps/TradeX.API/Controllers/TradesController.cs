@@ -127,6 +127,22 @@ public class TradesController(
         }, Logger).ConfigureAwait(false);
     }
 
+    [HttpGet("{tradeId:guid}/mistakes")]
+    [MapToApiVersion("1.0")]
+    public async Task<ContentResult> GetMistakes(Guid tradeId, CancellationToken cancellationToken)
+    {
+        return await HttpRequestProcessor.ProcessHttpRequestAsync(async () =>
+            (IStandardResponse)await Mediator.Send(new GetTradeMistakesQuery(tradeId), cancellationToken).ConfigureAwait(false), Logger).ConfigureAwait(false);
+    }
+
+    [HttpPut("{tradeId:guid}/mistakes")]
+    [MapToApiVersion("1.0")]
+    public async Task<ContentResult> UpdateMistakes(Guid tradeId, [FromBody] UpdateTradeMistakesRequest model, CancellationToken cancellationToken)
+    {
+        return await HttpRequestProcessor.ProcessHttpRequestAsync(async () =>
+            (IStandardResponse)await Mediator.Send(new UpdateTradeMistakesCommand(tradeId, model), cancellationToken).ConfigureAwait(false), Logger).ConfigureAwait(false);
+    }
+
     [HttpDelete("{tradeId:guid}/images/{imageId:guid}")]
     [MapToApiVersion("1.0")]
     public async Task<ContentResult> DeleteImage(Guid tradeId, Guid imageId, CancellationToken cancellationToken)
@@ -177,7 +193,7 @@ public class TradesController(
             return (IStandardResponse)await Mediator.Send(new HardDeleteTradeCommand(id), cancellationToken).ConfigureAwait(false);
         }, Logger).ConfigureAwait(false);
     }
-    
+
     [HttpPatch("{id:guid}/restore")]
     [MapToApiVersion("1.0")]
     public async Task<ContentResult> Restore(Guid id, CancellationToken cancellationToken)
