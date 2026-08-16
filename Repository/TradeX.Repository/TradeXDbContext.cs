@@ -18,6 +18,7 @@ public partial class TradeXDbContext(DbContextOptions<TradeXDbContext> options) 
     public virtual DbSet<TradeRuleCheck> TradeRuleCheck { get; set; }
     public virtual DbSet<Mistake> Mistake { get; set; }
     public virtual DbSet<TradeMistake> TradeMistake { get; set; }
+    public virtual DbSet<EconomicEvent> EconomicEvent { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
