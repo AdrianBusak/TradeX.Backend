@@ -126,6 +126,29 @@ public class TradeRuleCheckHandlersTests
     }
 
     [Fact]
+    public async Task UpdateRuleChecks_WhenTradeIsClosed_UpdatesChecklist()
+    {
+        var (db, repository) = CreateRepository();
+        var userId = Guid.NewGuid();
+        var strategy = CreateStrategy(userId);
+        var trade = CreateTrade(userId, strategy.Id);
+        trade.Status = TradeStatus.Closed;
+        var rule = CreateRule(strategy.Id, 1);
+        db.AddRange(strategy, trade, rule, CreateCheck(trade.Id, rule.Id, userId, true));
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var response = await new UpdateTradeRuleChecksCommandHandler(repository).Handle(
+            WithUser(new UpdateTradeRuleChecksCommand(trade.Id, new UpdateTradeRuleChecksRequest
+            {
+                Rules = [new() { StrategyRuleId = rule.Id, IsFollowed = false }]
+            }), userId), CancellationToken.None);
+
+        Assert.Equal(OperationResult.Updated, response.Result);
+        Assert.False((await db.TradeRuleCheck.SingleAsync()).IsFollowed);
+    }
+
+    [Fact]
     public async Task UpdateRuleChecksValidator_RejectsDuplicateRulesAndLongNotes()
     {
         var ruleId = Guid.NewGuid();

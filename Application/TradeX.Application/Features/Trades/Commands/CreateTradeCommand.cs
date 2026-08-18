@@ -63,27 +63,6 @@ public sealed class CreateTradeCommand(CreateTradeCommandModel data)
             RuleFor(x => x.TakeProfit).GreaterThan(0).When(x => x.TakeProfit.HasValue);
             RuleFor(x => x.LotSize).GreaterThan(0).When(x => x.LotSize.HasValue);
             RuleFor(x => x.RiskAmount).GreaterThanOrEqualTo(0).When(x => x.RiskAmount.HasValue);
-            RuleFor(x => x).Must(HasValidDirectionPrices).WithMessage("Stop loss and take profit must match the trade direction when entry price is supplied.");
-        }
-
-        private static bool HasValidDirectionPrices(CreateTradeCommandModel model)
-        {
-            if (!model.EntryPrice.HasValue)
-            {
-                return true;
-            }
-
-            var stopLossValid = !model.StopLoss.HasValue ||
-                (model.Direction == TradeDirection.Long
-                    ? model.StopLoss < model.EntryPrice
-                    : model.StopLoss > model.EntryPrice);
-
-            var takeProfitValid = !model.TakeProfit.HasValue ||
-                (model.Direction == TradeDirection.Long
-                    ? model.TakeProfit > model.EntryPrice
-                    : model.TakeProfit < model.EntryPrice);
-
-            return stopLossValid && takeProfitValid;
         }
     }
 }

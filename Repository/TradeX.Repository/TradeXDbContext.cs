@@ -19,11 +19,12 @@ public partial class TradeXDbContext(DbContextOptions<TradeXDbContext> options) 
     public virtual DbSet<Mistake> Mistake { get; set; }
     public virtual DbSet<TradeMistake> TradeMistake { get; set; }
     public virtual DbSet<EconomicEvent> EconomicEvent { get; set; }
+    public virtual DbSet<UserTradeOutcomeModel> UserTradeOutcomeModel { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        
+
         OnModelCreatingPartial(modelBuilder);
     }
     private static void OnModelCreatingPartial(ModelBuilder modelBuilder)
@@ -33,7 +34,7 @@ public partial class TradeXDbContext(DbContextOptions<TradeXDbContext> options) 
         modelBuilder.UseCollation("Latin1_General_CI_AI");
 
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-        
+
         modelBuilder.ApplySoftDeleteConfiguration();
         modelBuilder.ApplyBaseEntityConfiguration();
 

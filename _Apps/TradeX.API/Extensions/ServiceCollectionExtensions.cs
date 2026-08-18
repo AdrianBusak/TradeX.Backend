@@ -7,8 +7,9 @@ using TradeX.Application.Abstractions.Interfaces;
 using TradeX.Application.Clients.Extensions;
 using TradeX.Infrastructure.BlobStorageClient.Extensions;
 using TradeX.Infrastrucure.JwtAuthorization.Extensions;
-using TradeX.Infrastructure.LotCalculator.Extensions;
 using TradeX.Infrastructure.EconomicCalendar.Extensions;
+using TradeX.Infrastructure.LotCalculator.Extensions;
+using TradeX.Infrastructure.MachineLearning.Extensions;
 using TradeX.Repository;
 using TradeX.API.Services;
 
@@ -27,6 +28,7 @@ public static class ServiceCollectionExtensions
         services.AddLotCalculatorInfrastructure(configuration);
         services.AddEconomicCalendarInfrastructure(configuration);
         services.AddHostedService<EconomicCalendarSyncWorker>();
+        services.AddMachineLearningInfrastructure(configuration);
 
         services.AddSingleton(configuration.GetRequiredSection("ApplicationConfiguration").Get<ApplicationConfiguration>()!);
 
